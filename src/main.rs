@@ -22,7 +22,7 @@ fn browse_dir(pfx: String, fs: &mut FileSystem, dir: Directory) {
 }
 
 fn main() {
-    let path = std::path::Path::new("test.img");
+    let path = std::path::Path::new("imgs/fat16.img");
     let mut fs = FileSystem::new(path).unwrap();
     println!("FAT volume label {}, number of sectors {:x}, size {:x}",
     fs.volume_name(), fs.sectors_count(), fs.volume_size());
