@@ -1,5 +1,5 @@
-mod fat;
-use fat::*;
+mod fat16;
+use fat16::*;
 
 fn browse_dir(pfx: String, fs: &mut FileSystem, dir: Directory) {
     let entries = fs.read_directory(dir).unwrap();
