@@ -1,6 +1,6 @@
-use std::{fs, io, path, str};
-use std::io::{Read, Seek};
 use byteorder::ReadBytesExt;
+use std::io::{Read, Seek};
+use std::{fs, io, path, str};
 
 // normally read from boot record,
 // here assumed to be 512 bytes
@@ -12,11 +12,11 @@ pub struct FAT32 {
 
     // BIOS Parameter Block fields,
     // basic info about the volume:
-    reserved_sectors: u32,    // number of reserved sectors (incl boot record)
-    sector_count: u32,        // total number of sectors on the FS
-    fat_size: u32,            // size of a FAT, in sectors (i.e. sectors/size)
-    root_dir: u32,            // first cluster of root directory
-    label: [u8;11]            // file system name (aka label)
+    reserved_sectors: u32, // number of reserved sectors (incl boot record)
+    sector_count: u32,     // total number of sectors on the FS
+    fat_size: u32,         // size of a FAT, in sectors (i.e. sectors/size)
+    root_dir: u32,         // first cluster of root directory
+    label: [u8; 11],       // file system name (aka label)
 }
 
 impl FAT32 {
@@ -47,12 +47,18 @@ impl FAT32 {
         let root_dir = file.read_u32::<LittleEndian>()?;
 
         // label: 11 ascii bytes padded with spaces
-        let mut label = [0u8 ; 11];
+        let mut label = [0u8; 11];
         file.seek(io::SeekFrom::Start(71))?;
         file.read_exact(&mut label)?;
 
-        Ok(FAT32 { file, reserved_sectors, sector_count,
-                   fat_size, root_dir, label })
+        Ok(FAT32 {
+            file,
+            reserved_sectors,
+            sector_count,
+            fat_size,
+            root_dir,
+            label,
+        })
     }
 
     pub fn sector_count(&self) -> u32 {
@@ -100,11 +106,12 @@ impl FAT32 {
     pub fn root_directory(&self) -> Directory {
         // root directory is in the FAT, at a cluster
         // given in the boot record
-        Directory { cluster: self.root_dir }
+        Directory {
+            cluster: self.root_dir,
+        }
     }
 
-    pub fn read_directory(&mut self, dir: Directory)
-                          -> io::Result<Vec<DirectoryEntry>> {
+    pub fn read_directory(&mut self, dir: Directory) -> io::Result<Vec<DirectoryEntry>> {
         let mut cluster = dir.cluster;
         // entries per cluster: sector size / 32
         let count = SECTOR_SIZE >> 5;
@@ -121,8 +128,8 @@ impl FAT32 {
 
             // read directory entries until we reach maximum number
             // of entries/sector OR reach a termination marker
-            for _ in 0 .. count {
-                let mut name = [0u8 ; 11];
+            for _ in 0..count {
+                let mut name = [0u8; 11];
                 self.file.read_exact(&mut name)?;
 
                 if name[0] == 0 {
@@ -141,8 +148,10 @@ impl FAT32 {
                 // not supported atm.
                 if flags != 0xf {
                     entries.push(DirectoryEntry {
-                        name, flags,
-                        cluster, size
+                        name,
+                        flags,
+                        cluster,
+                        size,
                     });
                 }
             }
@@ -158,15 +167,15 @@ impl FAT32 {
 // describes one entry in
 // a directory listing
 pub struct DirectoryEntry {
-    name: [u8 ; 11],
+    name: [u8; 11],
     flags: u8,
     cluster: u32,
-    size: u32
+    size: u32,
 }
 
 pub enum EntryType {
     File(File),
-    Dir(Directory)
+    Dir(Directory),
 }
 
 pub struct File {
@@ -175,7 +184,7 @@ pub struct File {
 }
 
 pub struct Directory {
-    cluster: u32
+    cluster: u32,
 }
 
 impl DirectoryEntry {
@@ -207,12 +216,12 @@ impl DirectoryEntry {
         // 5th bit of flags = directory or file
         if self.flags & 0x10 != 0 {
             EntryType::Dir(Directory {
-                cluster: self.cluster
+                cluster: self.cluster,
             })
         } else {
             EntryType::File(File {
                 cluster: self.cluster,
-                size: self.size
+                size: self.size,
             })
         }
     }

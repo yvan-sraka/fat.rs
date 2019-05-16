@@ -22,7 +22,7 @@ fn browse_dir(pfx: String, fs: &mut FAT32, dir: Directory) {
                 }
             }
 
-            EntryType::File(_f) => ()
+            EntryType::File(_f) => (),
         }
     }
 }
@@ -30,8 +30,12 @@ fn browse_dir(pfx: String, fs: &mut FAT32, dir: Directory) {
 fn main() {
     let path = std::path::Path::new("imgs/fat32.img");
     let mut fs = FAT32::new(path).unwrap();
-    println!("FAT volume label {}, number of sectors {:x}, size {:x}",
-    fs.volume_name(), fs.sector_count(), fs.volume_size());
+    println!(
+        "FAT volume label {}, number of sectors {:x}, size {:x}",
+        fs.volume_name(),
+        fs.sector_count(),
+        fs.volume_size()
+    );
 
     let root = fs.root_directory();
     browse_dir("".to_string(), &mut fs, root);

@@ -1,10 +1,10 @@
+use byteorder::ReadBytesExt;
 use std::fs::File;
 use std::io;
 use std::io::Read;
 use std::io::Seek;
-use std::str;
 use std::path::Path;
-use byteorder::ReadBytesExt;
+use std::str;
 
 // BIOS Parameter Block,
 // basic info about the volume
@@ -32,7 +32,7 @@ struct BootRecord {
 
     // extended boot record fields:
     _flags: u8,
-    label: [u8;11],
+    label: [u8; 11],
 }
 
 impl BootRecord {
@@ -59,13 +59,22 @@ impl BootRecord {
         let _flags = file.read_u8()?;
         let signature = file.read_u8()?;
         assert!(signature == 0x28 || signature == 0x29);
-        let mut label = [0u8 ; 11];
+        let mut label = [0u8; 11];
         let _ = file.read_u32::<LittleEndian>()?;
         file.read_exact(&mut label)?;
 
-        Ok(BootRecord { sector_size, cluster_size, reserved_sectors,
-                        fat_count, root_entries, sector_count,
-                        fat_size, large_sector_count, _flags, label })
+        Ok(BootRecord {
+            sector_size,
+            cluster_size,
+            reserved_sectors,
+            fat_count,
+            root_entries,
+            sector_count,
+            fat_size,
+            large_sector_count,
+            _flags,
+            label,
+        })
     }
 }
 
@@ -108,8 +117,7 @@ impl FileSystem {
 
     pub fn root_directory(&self) -> Directory {
         Directory {
-            inner: DirType::Root(self.root_start_sector(),
-                                 self.br.root_entries)
+            inner: DirType::Root(self.root_start_sector(), self.br.root_entries),
         }
     }
 
@@ -120,13 +128,17 @@ impl FileSystem {
     }
 
     fn cluster_start(&self, cluster: u16) -> u32 {
-        self.data_start_sector() + (cluster-2) as u32 * self.br.cluster_size as u32
+        self.data_start_sector() + (cluster - 2) as u32 * self.br.cluster_size as u32
     }
 
     fn fat_lookup(&mut self, cluster: u16) -> io::Result<u16> {
-        let seek = self.fat_start_sector() * self.br.sector_size as u32
-            + ((cluster as u32) << 1);
-        println!("{:x} {:x} {:x}", seek, self.fat_start_sector(), self.br.sector_size);
+        let seek = self.fat_start_sector() * self.br.sector_size as u32 + ((cluster as u32) << 1);
+        println!(
+            "{:x} {:x} {:x}",
+            seek,
+            self.fat_start_sector(),
+            self.br.sector_size
+        );
         self.file.seek(io::SeekFrom::Start(seek as u64))?;
         self.file.read_u16::<byteorder::LittleEndian>()
     }
@@ -139,10 +151,14 @@ impl FileSystem {
                 cluster = start;
                 let fat = self.fat_lookup(cluster)?;
                 println!("read regular dir {:x} {:x}", fat, cluster);
-                if fat < 2 { return Ok(Vec::new()) }
-                (self.cluster_start(cluster),
-                 (self.br.cluster_size as u16 * self.br.sector_size as u16) >> 5,
-                 false)
+                if fat < 2 {
+                    return Ok(Vec::new());
+                }
+                (
+                    self.cluster_start(cluster),
+                    (self.br.cluster_size as u16 * self.br.sector_size as u16) >> 5,
+                    false,
+                )
             }
         };
 
@@ -156,12 +172,17 @@ impl FileSystem {
 
             // end of current cluster?
             if count == entry_count {
-                if is_root { break }
-                else {
+                if is_root {
+                    break;
+                } else {
                     // next cluster?
-                    if cluster > 0xffef { break }
+                    if cluster > 0xffef {
+                        break;
+                    }
                     cluster = self.fat_lookup(cluster)?;
-                    if cluster < 2 { break }
+                    if cluster < 2 {
+                        break;
+                    }
                     // yes
                     let start_sector = self.cluster_start(cluster);
                     let seek = start_sector * self.br.sector_size as u32;
@@ -169,9 +190,9 @@ impl FileSystem {
                     count = 0;
                 }
             }
-            
-            let mut name = [0u8;8];
-            let mut ext = [0u8;3];
+
+            let mut name = [0u8; 8];
+            let mut ext = [0u8; 3];
             self.file.read_exact(&mut name)?;
             self.file.read_exact(&mut ext)?;
 
@@ -186,7 +207,13 @@ impl FileSystem {
             let size = self.file.read_u32::<LittleEndian>()?;
 
             if flags != 0xf {
-                entries.push(DirectoryEntry { name, ext, flags, first_cluster, size });
+                entries.push(DirectoryEntry {
+                    name,
+                    ext,
+                    flags,
+                    first_cluster,
+                    size,
+                });
             }
             count += 1;
         }
@@ -197,31 +224,31 @@ impl FileSystem {
 
 pub struct File_ {
     first_cluster: u16,
-    size: u32
+    size: u32,
 }
 
 pub enum DirType {
     // root dir: first sector, entry count
     Root(u32, u16),
     // regular dir: first cluster
-    Regular(u16)
+    Regular(u16),
 }
 
 pub struct Directory {
-    inner: DirType
+    inner: DirType,
 }
 
 pub struct DirectoryEntry {
-    name: [u8 ; 8],
-    ext: [u8 ; 3],
+    name: [u8; 8],
+    ext: [u8; 3],
     flags: u8,
     first_cluster: u16,
-    size: u32
+    size: u32,
 }
 
 pub enum EntryType {
     File(File_),
-    Dir(Directory)
+    Dir(Directory),
 }
 
 impl DirectoryEntry {
@@ -236,11 +263,13 @@ impl DirectoryEntry {
     pub fn entry_type(&self) -> EntryType {
         if self.flags & 0x10 != 0 {
             EntryType::Dir(Directory {
-                inner: DirType::Regular(self.first_cluster)
+                inner: DirType::Regular(self.first_cluster),
             })
         } else {
-            EntryType::File(File_ { first_cluster: self.first_cluster,
-                                    size: self.size })
+            EntryType::File(File_ {
+                first_cluster: self.first_cluster,
+                size: self.size,
+            })
         }
     }
 }
