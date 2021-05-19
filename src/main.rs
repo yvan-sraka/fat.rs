@@ -15,7 +15,7 @@ fn browse_dir(pfx: String, fs: &mut FAT32, dir: Directory) {
             EntryType::Dir(dir) => {
                 // ignore . and .. to avoid
                 // infinite recursion
-                if !name.starts_with(".") {
+                if !name.starts_with('.') {
                     // recursively descend into
                     // sub directories
                     browse_dir(path, fs, dir);

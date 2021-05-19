@@ -178,6 +178,7 @@ pub enum EntryType {
     Dir(Directory),
 }
 
+#[allow(dead_code)]
 pub struct File {
     cluster: u32,
     size: u32,
@@ -204,11 +205,11 @@ impl DirectoryEntry {
         let mut name = String::with_capacity(12);
         name.push_str(self.name());
         let ext = self.extension();
-        if ext != "" {
+        if !ext.is_empty() {
             name.push('.');
             name.push_str(ext);
         }
-        return name;
+        name
     }
 
     pub fn entry_type(&self) -> EntryType {
